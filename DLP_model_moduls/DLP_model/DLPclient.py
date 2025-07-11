@@ -1,4 +1,4 @@
-import socket
+import socket 
 import os
 import threading
 import time
@@ -6,13 +6,13 @@ import queue
 import win32clipboard
 import csv
 import datetime
-import win32con
-import win32gui
-import psutil
+import win32con # константы Windows API
+import win32gui # управление окнами
+import psutil # процессы
 from pynput import keyboard
-import win32process
+import win32process # управление процессами
 import json
-import win32api
+import win32api 
 import win32file
 import docx
 
@@ -122,10 +122,10 @@ def get_clipboard_files():
 	files = []
 	try:
 		win32clipboard.OpenClipboard()
-		if win32clipboard.IsClipboardFormatAvailable(win32con.CF_HDROP):
+		if win32clipboard.IsClipboardFormatAvailable(win32con.CF_HDROP): #CF_HDROP: Формат данных для перетаскивания файлов (Drag&Drop)
 			files = win32clipboard.GetClipboardData(win32con.CF_HDROP)
 	except Exception as e:
-		print(f"Ошибка при проверке буфера обмена: {e}")
+		pass
 	finally:
 		win32clipboard.CloseClipboard()
 
@@ -140,7 +140,6 @@ def process_file(file_path):
 			file_content = content_file.read()
 
 		if not file_content.strip():
-			print(f"Файл {file_path} пуст, пропускаем.")
 			return
 
 		if csvCheckExpressionInverse(file_content):
@@ -154,7 +153,6 @@ def process_file(file_path):
 			file_content = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
 
 			if not file_content.strip():
-				print(f"Файл {file_path} пуст, пропускаем.")
 				return
 
 			if csvCheckExpressionInverse(file_content):
@@ -162,22 +160,20 @@ def process_file(file_path):
 				os.remove(file_path)
 				logging('usb', f'Файл удалён: {file_path}', 'Высокий уровень угрозы')
 		except Exception as e:
-			print(f"Ошибка при обработке docx файла {file_path}: {e}")
 
 
 
 def monitor_usb_drive(device):
 	global csv_files
-	print(device)
-
+	#получение указателя директории
 	hDir = win32file.CreateFile(
 		device,
-		win32con.GENERIC_READ,
-		win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE | win32con.FILE_SHARE_DELETE,
-		None,
+		win32con.GENERIC_READ, #только чтение
+		win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE | win32con.FILE_SHARE_DELETE, #доступ других процессов к работе с файлом
+		None, # атрибуты безопасности
 		win32con.OPEN_EXISTING,
-		win32con.FILE_FLAG_BACKUP_SEMANTICS,
-		None
+		win32con.FILE_FLAG_BACKUP_SEMANTICS, # Позволяет работать с директорией как с объектом
+		None # шаблон
 	)
 
 	while True:
@@ -189,25 +185,23 @@ def monitor_usb_drive(device):
 			results = win32file.ReadDirectoryChangesW(
 				hDir,
 				1024,
-				True,
+				True, #мониторинг вложенных директорий
 				win32con.FILE_NOTIFY_CHANGE_FILE_NAME |
 				win32con.FILE_NOTIFY_CHANGE_LAST_WRITE,
-				None,
-				None
+				None, # Перекрывающаяся структура
+				None  # Буфер для асинхронных операций
 				)
 
 			for action, file in results:
 				full_path = os.path.join(device, file)
 
 				if action in {FILE_ACTION_ADDED, FILE_ACTION_MODIFIED}:
-					print(action)
 					if os.path.isfile(full_path):
 						process_file(full_path)
 			results = []
 			time.sleep(2)
 
 		except Exception as e:
-			print("юэсби модул:",e)
 			time.sleep(1)
 
 	win32file.CloseHandle(hDir)
@@ -229,21 +223,16 @@ def on_press(key):
 				os.system("taskkill /im chrome.exe /f")
 				logging('keylogger', 'Ввёл в браузер корпоративную информацию', 'Высокий уровень угрозы')
 			kbinput = []
-		print(bf)
 		if bf == 0:
 			kbinput = []
 			keyloggerp = None
 			return False
-	finally:
-		pass
 
 
 
 
 def KLModuleMainF():
-	print("kl active.\n")
 	with keyboard.Listener(on_press=on_press) as listener:
-		print("salam aletkum")
 		listener.join()
 
 
@@ -266,7 +255,7 @@ def USBModuleMainF():
 			last_devices = current_devices
 
 		except Exception as e:
-			print("USB module: ", e)
+			pass
 
 		time.sleep(1)
 
@@ -283,20 +272,19 @@ def AWModuleMainF(squeue):
 	process = ''
 	while True:
 		try:
-			hwnd = win32gui.GetForegroundWindow()
+			hwnd = win32gui.GetForegroundWindow() #получение указателя активного окна
 			if hwnd != lastHwnd:
 				bf = 0
 				squeue.put(('ba',0))
 				title = win32gui.GetWindowText(hwnd)
 
 				for file in csv_files:
-					print(file.split('\\')[-1], title)
 					if title and isinstance(file, str) and file.split('\\')[-1] in title:
 						logging('active window', 'Открыт охраняемый файл', 'Средний уровень угрозы')
 						continue
 
 				if "Открытие" in title:
-					win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+					win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0) #WM_CLOSE (0x0010) — сообщение Windows для закрытия окна
 					logging('active window', 'Открыл окно выгрузки файлов', 'Высокий уровень угрозы')
 					continue
 				pid = win32process.GetWindowThreadProcessId(hwnd)[1]
@@ -321,13 +309,12 @@ def AWModuleMainF(squeue):
 				lastHwnd = hwnd
 
 		except Exception as e:
-			print("AW module: ",e)
+			pass
 		finally:
 			pass
 
 
 def CBModuleMainF(squeue):
-	print('tcp gavno')
 	last_clipboard_content = None
 	while True:
 		try:
@@ -362,7 +349,7 @@ def CBModuleMainF(squeue):
 						logging('clipboard', 'Скопировал корпоративную информацию.', 'Средний уровень угрозы')
 			time.sleep(1)
 		except Exception as e:
-			print(e)
+			pass
 		finally:
 			pass
 
@@ -374,7 +361,6 @@ def signalHandling(squeue):
 			continue
 		key, value = item
 		signals[key] = value
-		print(signals)
 		if signals["iincb"] == 1 and signals["ba"] == 1:
 			signals = {"iincb": 0, "ba": 0}
 			logging('clipboard','Скопировал корпоративные данные, открыто окно браузера','Высокий уровень угрозы')
@@ -471,7 +457,7 @@ def clientProgram(client_socket):
 
 		# logSendingThread.join()
 	except Exception as e:
-		print(f"An error occurred: {e}")
+		pass
 	finally:
 		client_socket.close()
 
