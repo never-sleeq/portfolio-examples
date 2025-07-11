@@ -83,7 +83,7 @@ def lvrefresh():#функция по кнопке обновляющая list wi
         for log_entry in data_list:
             item = QListWidgetItem(log_entry)
             widget.usbl.addItem(item)
-     #иванджипити
+
 
 def client_handling(client_socket, client_address):
     print("handling start")
@@ -117,7 +117,6 @@ def client_handling(client_socket, client_address):
                 showAction("{}({}) отправляет журнал буфера обмена.".format(clients[client_address[0]],client_address[0]),QColor(0, 128, 0))
 
                 received_data = b""
-                # while len(received_data) < file_size: что автор имел ввиду?
                 received_data = client_socket.recv(16 * 1024)
                 received_data = b'\n' + received_data
                 file_path = "C:\\Users\\Admin\\DLP\\log_cb_{client_address[0]}.csv"
